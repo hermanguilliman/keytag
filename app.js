@@ -502,13 +502,20 @@
     const next = coerceValue(el, getPath(el.dataset.bind));
     if (next === undefined) return;
     setPath(el.dataset.bind, next);
-    render();
+    if (el.dataset.bind === "tag.guides") {
+      /* направляющие — меняется только оверлей; сетку бирок не перестраиваем */
+      renderGuides();
+      syncControls();
+      save();
+    } else {
+      render();
+    }
   });
 
   panel.addEventListener("change", (e) => {
     const el = e.target;
     if (el && el.dataset && el.dataset.bind && el.type === "file") return;
-    if (el && el.dataset && el.dataset.bind) render();
+    if (el && el.dataset && el.dataset.bind && el.dataset.bind !== "tag.guides") render();
   });
 
   panel.addEventListener("click", (e) => {
@@ -734,23 +741,28 @@
   /* Направляющие: отрисовываются SVG-оверлеем НАД листом, вне
      масштабируемого слоя (.sheet-scaler), чтобы пунктир не
      растеризовывался при scale() на GPU. Оверлей вне масштабируемого
-     слоя, штрихи СПЛОШНЫЕ 1px c vector-effect: non-scaling-stroke —
-     выглядят одинаково при любом зуме браузера и не дают субпиксельных
-     миганий. Координаты — в пикселях предпросмотра (мм × zoom × MM_PX). */
+     слоя, только плейн-дивы с рамкой 1px — самые тривиальные примитивы
+     рендера, одинаково выглядят при любом зуме браузера.
+     Координаты — в пикселях предпросмотра (мм × zoom × MM_PX). */
   function renderGuides() {
+    guidesEl.innerHTML = "";
     const s = sheetSize();
     const u = MM_PX * state.zoom;
     const r1 = (v) => Math.round(v * 10) / 10;
-    const rect = (x, y, w, h, rx, cls) =>
-      '<rect class="' + cls + '" x="' + r1(x) + '" y="' + r1(y) +
-      '" width="' + r1(w) + '" height="' + r1(h) + '" rx="' + r1(rx) + '"/>';
-    /* зона печати: рамка внутри полей (видна всегда, повторяет CSS-поля) */
-    let svg = rect(
-      state.paper.marginX * u,
-      state.paper.marginY * u,
-      (s.w - 2 * state.paper.marginX) * u,
-      (s.h - 2 * state.paper.marginY) * u,
-      2 * u, "print-zone");
+    const add = (x, y, w, h, rx, cls) => {
+      const d = document.createElement("div");
+      d.className = cls;
+      d.style.left = r1(x) + "px";
+      d.style.top = r1(y) + "px";
+      d.style.width = Math.max(0, r1(w)) + "px";
+      d.style.height = Math.max(0, r1(h)) + "px";
+      d.style.borderRadius = Math.max(0, r1(rx)) + "px";
+      guidesEl.appendChild(d);
+    };
+    /* зона печати: рамка внутри полей (видна всегда) */
+    add(state.paper.marginX * u, state.paper.marginY * u,
+        (s.w - 2 * state.paper.marginX) * u, (s.h - 2 * state.paper.marginY) * u,
+        2 * u, "print-zone");
     if (state.tag.guides) {
       /* сетка центрируется в листе: повторяем расчёт CSS (.sheet flex + поля) */
       const gridW = state.grid.cols * state.tag.w + (state.grid.cols - 1) * state.tag.gapX;
@@ -760,16 +772,50 @@
       const radius = Math.max(0, (Number(state.tag.radius) || 0) * u);
       for (let r = 0; r < state.grid.rows; r++) {
         for (let c = 0; c < state.grid.cols; c++) {
-          svg += rect(
-            (baseX + c * (state.tag.w + state.tag.gapX)) * u,
-            (baseY + r * (state.tag.h + state.tag.gapY)) * u,
-            state.tag.w * u,
-            state.tag.h * u,
-            radius, "g");
+          add((baseX + c * (state.tag.w + state.tag.gapX)) * u,
+              (baseY + r * (state.tag.h + state.tag.gapY)) * u,
+              state.tag.w * u, state.tag.h * u, radius, "g");
         }
       }
     }
-    guidesEl.innerHTML = '<svg viewBox="0 0 ' + r1(s.w * u) + ' ' + r1(s.h * u) + '">' + svg + '</svg>';
+    diagPanel();
+  }
+
+  /* ---------- диагностика ----------
+     Всегда пишет компактную строку метрик в консоль; при ?diag в URL —
+     ещё и показывает её на странице (справа внизу). */
+  function diagPanel() {
+    try {
+      const d = document.documentElement;
+      const st = document.getElementById("stageScroll");
+      const fr = document.getElementById("sheetFrame");
+      const gd = document.getElementById("guides");
+      const rnd = (x) => (x === undefined || x === null || Number.isNaN(x)) ? "-" : Math.round(x);
+      const m = [
+        "K v1.2.1  dpr " + Number(window.devicePixelRatio).toFixed(2),
+        "view " + innerWidth + "x" + innerHeight + "  docScroll " + d.scrollHeight,
+        "bodyScroll " + rnd(document.body.scrollHeight) + "  stageScroll " + rnd(st.scrollHeight) + "/" + rnd(st.clientHeight),
+        "frame " + rnd(fr.getBoundingClientRect().height) + "  guides " + rnd(gd.getBoundingClientRect().height) +
+          "  guidesEl " + gd.childElementCount,
+        "topbarY " + rnd(document.querySelector(".topbar").getBoundingClientRect().y) +
+          "  stageY " + rnd(document.querySelector(".stage").getBoundingClientRect().y)
+      ].join("\n");
+      if (location.search.includes("diag")) {
+        let box = document.getElementById("diagBox");
+        if (!box) {
+          box = document.createElement("div");
+          box.id = "diagBox";
+          box.style.cssText =
+            "position:fixed;right:8px;bottom:8px;z-index:99999;background:rgba(10,8,16,.88);" +
+            "color:#d9d3e6;font:11px/1.5 Consolas,Menlo,monospace;padding:8px 10px;border-radius:6px;" +
+            "pointer-events:none;white-space:pre;max-width:70vw;";
+          document.body.appendChild(box);
+        }
+        box.textContent = m;
+        box.style.display = "block";
+      }
+      if (window.__KEYTAG_DIAG !== false) console.log("[KEYTAG]", m.split("\n").join(" | "));
+    } catch (e) {}
   }
 
   /* ---------- удобный ввод чисел: выделяем значение при фокусе ---------- */
