@@ -19,10 +19,10 @@
   --line-2: #D3C8B1;
   --paper: #FFFFFF;
 
-  --accent: #E0501C;
-  --accent-dark: #C44214;
-  --accent-soft: rgba(224, 80, 28, .12);
-  --focus: 0 0 0 3px rgba(224, 80, 28, .16);
+  --accent: #590A94;
+  --accent-dark: #470876;
+  --accent-soft: rgba(89, 10, 148, .12);
+  --focus: 0 0 0 3px rgba(89, 10, 148, .16);
 
   --r-s: 6px;
   --r-m: 10px;
@@ -390,7 +390,7 @@ select.input{
   background: var(--accent-soft);
   border-left: 2px solid var(--accent);
   border-radius: 0 var(--r-s) var(--r-s) 0;
-  color: #9C3D10;
+  color: #3E0768;
 }
 
 .check{
@@ -617,14 +617,14 @@ select.input{
 .tag-content[data-icon-pos="left"] .tag-text,
 .tag-content[data-icon-pos="right"] .tag-text{ flex: 1 1 auto; }
 
-.tag-text:focus{ background: rgba(224, 80, 28, .08); }
+.tag-text:focus{ background: rgba(89, 10, 148, .08); }
 
 /* направляющие (только экран) */
 .grid.show-guides .tag::after{
   content: "";
   position: absolute;
   inset: 2mm;
-  border: 0.25mm dashed rgba(224, 80, 28, .55);
+  border: 0.25mm dashed rgba(89, 10, 148, .55);
   border-radius: 2mm;
   pointer-events: none;
 }
@@ -642,7 +642,7 @@ select.input{
   pointer-events: none;
 }
 
-.tag:hover{ outline-color: rgba(224, 80, 28, .85); }
+.tag:hover{ outline-color: rgba(89, 10, 148, .85); }
 
 .tag-reset{
   position: absolute;
