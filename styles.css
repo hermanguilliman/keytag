@@ -908,15 +908,23 @@ select.input option{ color: var(--ink); }
 
 .tag-text:focus{ background: var(--accent-soft); }
 
-/* направляющие (только экран) */
-.grid.show-guides .tag::after{
-  content: "";
+/* направляющие (только экран): оверлей над листом, НЕ внутри
+   масштабируемого слоя — растеризация не зависит от GPU-масштаба */
+.guides{
   position: absolute;
-  z-index: 2;
-  inset: 2mm;
-  border: 0.25mm dashed var(--accent);
-  border-radius: 2mm;
+  inset: 0;
   pointer-events: none;
+  z-index: 4;
+}
+.guides svg{
+  width: 100%;
+  height: 100%;
+  display: block;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: var(--gu, 1px);
+  stroke-dasharray: var(--gd, 5px 4px);
+  opacity: .5;
 }
 
 /* маркер личной правки (только экран) */
@@ -1202,7 +1210,7 @@ select.input option{ color: var(--ink); }
 
   .tag:hover{ outline-color: transparent !important; }
 
-  .grid.show-guides .tag::after,
+  .guides,
   .tag.has-override::before{
     display: none !important;
   }

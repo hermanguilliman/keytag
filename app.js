@@ -233,6 +233,7 @@
   const uploadPreview = $("#uploadPreview");
   const iconRemove = $("#iconRemove");
   const annotR = $("#annotR");
+  const guidesEl = $("#guides");
 
   /* Динамическое @page — размер листа для печати совпадает с настройками */
   const pageStyle = document.createElement("style");
@@ -300,7 +301,6 @@
     grid.style.gridTemplateRows = "repeat(" + state.grid.rows + ", " + state.tag.h + "mm)";
     grid.style.gap = state.tag.gapY + "mm " + state.tag.gapX + "mm";
     grid.dataset.cut = state.tag.cut;
-    grid.classList.toggle("show-guides", !!state.tag.guides);
 
     const count = countTags();
     const frag = document.createDocumentFragment();
@@ -407,6 +407,7 @@
     zoomValue.textContent = Math.round(state.zoom * 100) + "%";
     renderCaption();
     updateAnnot();
+    renderGuides();
   }
 
   function setZoom(z, isFit) {
@@ -730,6 +731,41 @@
         annotR.style.display = "none";
       }
     }
+  }
+
+  /* Направляющие: отрисовываются SVG-оверлеем НАД листом, вне
+     масштабируемого слоя (.sheet-scaler), чтобы пунктир не
+     растеризовывался при scale() на GPU. Координаты — в пикселях
+     уже увеличенного предпросмотра (мм × zoom × MM_PX). */
+  function renderGuides() {
+    guidesEl.innerHTML = "";
+    if (!state.tag.guides) return;
+    const s = sheetSize();
+    const u = MM_PX * state.zoom;
+    const r1 = (v) => Math.round(v * 10) / 10;
+    const radius = Math.max(0, r1((Number(state.tag.radius) || 0) * u));
+    /* сетка центрируется в листе: повторяем расчёт CSS (.sheet flex + поля) */
+    const gridW = state.grid.cols * state.tag.w + (state.grid.cols - 1) * state.tag.gapX;
+    const gridH = state.grid.rows * state.tag.h + (state.grid.rows - 1) * state.tag.gapY;
+    const offX = (s.w - 2 * state.paper.marginX - gridW) / 2;
+    const offY = (s.h - 2 * state.paper.marginY - gridH) / 2;
+    const baseX = state.paper.marginX + offX;
+    const baseY = state.paper.marginY + offY;
+    const rects = [];
+    for (let r = 0; r < state.grid.rows; r++) {
+      for (let c = 0; c < state.grid.cols; c++) {
+        rects.push(
+          '<rect x="' + r1((baseX + c * (state.tag.w + state.tag.gapX)) * u) +
+          '" y="' + r1((baseY + r * (state.tag.h + state.tag.gapY)) * u) +
+          '" width="' + r1(state.tag.w * u) +
+          '" height="' + r1(state.tag.h * u) +
+          '" rx="' + radius + '"/>'
+        );
+      }
+    }
+    guidesEl.innerHTML = '<svg viewBox="0 0 ' + r1(s.w * u) + ' ' + r1(s.h * u) + '">' + rects.join("") + '</svg>';
+    guidesEl.style.setProperty("--gu", r1(0.25 * u) + "px");
+    guidesEl.style.setProperty("--gd", r1(1.6 * u) + "px " + r1(1.3 * u) + "px");
   }
 
   /* ---------- удобный ввод чисел: выделяем значение при фокусе ---------- */
