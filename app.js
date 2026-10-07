@@ -294,8 +294,6 @@
     sheet.style.width = s.w + "mm";
     sheet.style.height = s.h + "mm";
     sheet.style.padding = state.paper.marginY + "mm " + state.paper.marginX + "mm";
-    sheet.style.setProperty("--mX", state.paper.marginX + "mm");
-    sheet.style.setProperty("--mY", state.paper.marginY + "mm");
 
     grid.style.gridTemplateColumns = "repeat(" + state.grid.cols + ", " + state.tag.w + "mm)";
     grid.style.gridTemplateRows = "repeat(" + state.grid.rows + ", " + state.tag.h + "mm)";
@@ -735,37 +733,43 @@
 
   /* Направляющие: отрисовываются SVG-оверлеем НАД листом, вне
      масштабируемого слоя (.sheet-scaler), чтобы пунктир не
-     растеризовывался при scale() на GPU. Координаты — в пикселях
-     уже увеличенного предпросмотра (мм × zoom × MM_PX). */
+     растеризовывался при scale() на GPU. Оверлей вне масштабируемого
+     слоя, штрихи СПЛОШНЫЕ 1px c vector-effect: non-scaling-stroke —
+     выглядят одинаково при любом зуме браузера и не дают субпиксельных
+     миганий. Координаты — в пикселях предпросмотра (мм × zoom × MM_PX). */
   function renderGuides() {
-    guidesEl.innerHTML = "";
-    if (!state.tag.guides) return;
     const s = sheetSize();
     const u = MM_PX * state.zoom;
     const r1 = (v) => Math.round(v * 10) / 10;
-    const radius = Math.max(0, r1((Number(state.tag.radius) || 0) * u));
-    /* сетка центрируется в листе: повторяем расчёт CSS (.sheet flex + поля) */
-    const gridW = state.grid.cols * state.tag.w + (state.grid.cols - 1) * state.tag.gapX;
-    const gridH = state.grid.rows * state.tag.h + (state.grid.rows - 1) * state.tag.gapY;
-    const offX = (s.w - 2 * state.paper.marginX - gridW) / 2;
-    const offY = (s.h - 2 * state.paper.marginY - gridH) / 2;
-    const baseX = state.paper.marginX + offX;
-    const baseY = state.paper.marginY + offY;
-    const rects = [];
-    for (let r = 0; r < state.grid.rows; r++) {
-      for (let c = 0; c < state.grid.cols; c++) {
-        rects.push(
-          '<rect x="' + r1((baseX + c * (state.tag.w + state.tag.gapX)) * u) +
-          '" y="' + r1((baseY + r * (state.tag.h + state.tag.gapY)) * u) +
-          '" width="' + r1(state.tag.w * u) +
-          '" height="' + r1(state.tag.h * u) +
-          '" rx="' + radius + '"/>'
-        );
+    const rect = (x, y, w, h, rx, cls) =>
+      '<rect class="' + cls + '" x="' + r1(x) + '" y="' + r1(y) +
+      '" width="' + r1(w) + '" height="' + r1(h) + '" rx="' + r1(rx) + '"/>';
+    /* зона печати: рамка внутри полей (видна всегда, повторяет CSS-поля) */
+    let svg = rect(
+      state.paper.marginX * u,
+      state.paper.marginY * u,
+      (s.w - 2 * state.paper.marginX) * u,
+      (s.h - 2 * state.paper.marginY) * u,
+      2 * u, "print-zone");
+    if (state.tag.guides) {
+      /* сетка центрируется в листе: повторяем расчёт CSS (.sheet flex + поля) */
+      const gridW = state.grid.cols * state.tag.w + (state.grid.cols - 1) * state.tag.gapX;
+      const gridH = state.grid.rows * state.tag.h + (state.grid.rows - 1) * state.tag.gapY;
+      const baseX = state.paper.marginX + (s.w - 2 * state.paper.marginX - gridW) / 2;
+      const baseY = state.paper.marginY + (s.h - 2 * state.paper.marginY - gridH) / 2;
+      const radius = Math.max(0, (Number(state.tag.radius) || 0) * u);
+      for (let r = 0; r < state.grid.rows; r++) {
+        for (let c = 0; c < state.grid.cols; c++) {
+          svg += rect(
+            (baseX + c * (state.tag.w + state.tag.gapX)) * u,
+            (baseY + r * (state.tag.h + state.tag.gapY)) * u,
+            state.tag.w * u,
+            state.tag.h * u,
+            radius, "g");
+        }
       }
     }
-    guidesEl.innerHTML = '<svg viewBox="0 0 ' + r1(s.w * u) + ' ' + r1(s.h * u) + '">' + rects.join("") + '</svg>';
-    guidesEl.style.setProperty("--gu", r1(0.25 * u) + "px");
-    guidesEl.style.setProperty("--gd", r1(1.6 * u) + "px " + r1(1.3 * u) + "px");
+    guidesEl.innerHTML = '<svg viewBox="0 0 ' + r1(s.w * u) + ' ' + r1(s.h * u) + '">' + svg + '</svg>';
   }
 
   /* ---------- удобный ввод чисел: выделяем значение при фокусе ---------- */

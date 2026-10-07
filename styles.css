@@ -744,6 +744,7 @@ select.input option{ color: var(--ink); }
 /* размерные аннотации (только экран) */
 .annot{
   position: absolute;
+  z-index: 5;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -783,12 +784,9 @@ select.input option{ color: var(--ink); }
 
 .sheet-scaler{
   transform-origin: top left;
-  will-change: transform;
 }
 
 .sheet{
-  --mX: 10mm;
-  --mY: 10mm;
   background: var(--paper, #FFFFFF);
   box-shadow: var(--shadow-m);
   display: flex;
@@ -797,19 +795,8 @@ select.input option{ color: var(--ink); }
   overflow: hidden;
   position: relative;
 }
-/* зона печати: пунктир показывает «живую» область внутри полей */
-.sheet::after{
-  content: "";
-  position: absolute;
-  left: var(--mX);
-  right: var(--mX);
-  top: var(--mY);
-  bottom: var(--mY);
-  border: 1px dashed var(--margin-guide);
-  border-radius: 2mm;
-  pointer-events: none;
-  z-index: 3;
-}
+/* зона печати и направляющие отрисованы оверлеем #guides (см. .guides ниже) —
+   внутри масштабируемого слоя ничего служебного не живёт */
 
 .sheet-caption{
   margin-top: 16px;
@@ -921,10 +908,18 @@ select.input option{ color: var(--ink); }
   height: 100%;
   display: block;
   fill: none;
+}
+/* сплошные штрихи 1px: не зависят от zoom браузера и не ломают растеризацию */
+.guides svg .g{
   stroke: var(--accent);
-  stroke-width: var(--gu, 1px);
-  stroke-dasharray: var(--gd, 5px 4px);
-  opacity: .5;
+  stroke-width: 1px;
+  stroke-opacity: .5;
+  vector-effect: non-scaling-stroke;
+}
+.guides svg .print-zone{
+  stroke: var(--margin-guide);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
 }
 
 /* маркер личной правки (только экран) */
@@ -1168,8 +1163,7 @@ select.input option{ color: var(--ink); }
   .sheet-caption,
   .tag-reset,
   .noscript,
-  .toast,
-  .sheet::after{ display: none !important; }
+  .toast{ display: none !important; }
 
   .layout{ display: block; }
 
