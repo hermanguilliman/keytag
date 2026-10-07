@@ -293,6 +293,8 @@
     sheet.style.width = s.w + "mm";
     sheet.style.height = s.h + "mm";
     sheet.style.padding = state.paper.marginY + "mm " + state.paper.marginX + "mm";
+    sheet.style.setProperty("--mX", state.paper.marginX + "mm");
+    sheet.style.setProperty("--mY", state.paper.marginY + "mm");
 
     grid.style.gridTemplateColumns = "repeat(" + state.grid.cols + ", " + state.tag.w + "mm)";
     grid.style.gridTemplateRows = "repeat(" + state.grid.rows + ", " + state.tag.h + "mm)";

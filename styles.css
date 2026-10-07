@@ -25,6 +25,7 @@
   --accent-dark: #470876;
   --accent-soft: rgba(89, 10, 148, .10);
   --accent-soft-2: rgba(89, 10, 148, .16);
+  --margin-guide: rgba(89, 10, 148, .45);
   --focus-ring: 0 0 0 3px var(--accent-soft-2);
 
   /* статусы */
@@ -66,6 +67,7 @@
   --accent-dark: #C99FF3;
   --accent-soft: rgba(181, 123, 236, .15);
   --accent-soft-2: rgba(181, 123, 236, .30);
+  --margin-guide: rgba(181, 123, 236, .55);
   --focus-ring: 0 0 0 3px var(--accent-soft-2);
 
   --ok: #8FC7A6;
@@ -785,6 +787,8 @@ select.input option{ color: var(--ink); }
 }
 
 .sheet{
+  --mX: 10mm;
+  --mY: 10mm;
   background: var(--paper, #FFFFFF);
   box-shadow: var(--shadow-m);
   display: flex;
@@ -792,6 +796,19 @@ select.input option{ color: var(--ink); }
   justify-content: center;
   overflow: hidden;
   position: relative;
+}
+/* зона печати: пунктир показывает «живую» область внутри полей */
+.sheet::after{
+  content: "";
+  position: absolute;
+  left: var(--mX);
+  right: var(--mX);
+  top: var(--mY);
+  bottom: var(--mY);
+  border: 1px dashed var(--margin-guide);
+  border-radius: 2mm;
+  pointer-events: none;
+  z-index: 3;
 }
 
 .sheet-caption{
@@ -1141,7 +1158,8 @@ select.input option{ color: var(--ink); }
   .sheet-caption,
   .tag-reset,
   .noscript,
-  .toast{ display: none !important; }
+  .toast,
+  .sheet::after{ display: none !important; }
 
   .layout{ display: block; }
 
