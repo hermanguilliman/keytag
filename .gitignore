@@ -1,0 +1,9 @@
+# ОС и редакторы
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Локальные настройки IDE
+.idea/
+.vscode/
+*.code-workspace

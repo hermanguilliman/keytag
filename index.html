@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>БИРКА — мастерская ключевых бирок</title>
+<meta name="description" content="Статический редактор сетки бирок для ключей: реальные размеры в миллиметрах, текст, иконки, точная печать.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Cpath%20d='M5%204h22v13.5L15.8%2028H5z'%20fill='%23E0501C'/%3E%3Ccircle%20cx='21'%20cy='10'%20r='3.2'%20fill='%2317140F'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&family=PT+Serif:wght@400;700&family=Playfair+Display:wght@700;800&family=Roboto+Condensed:wght@400;700&family=Unbounded:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+      <path d="M5 4h22v13.6L15.7 28H5z"/>
+      <circle cx="21" cy="10.5" r="3.2" class="brand-hole"/>
+      <path d="M9 9.5h5.5M9 13h3.5" class="brand-line"/>
+    </svg>
+    <span class="brand-text">
+      <h1 class="brand-name" data-i18n="brandName">БИРКА</h1>
+      <span class="brand-sub" data-i18n="brandSub">мастерская ключевых бирок</span>
+    </span>
+  </div>
+
+  <div class="topbar-actions">
+    <div class="zoombox">
+      <span class="zoom-label" data-i18n="zoom">Масштаб</span>
+      <div class="stepper" role="group" aria-label="zoom">
+        <button type="button" class="step-btn" id="zoomOut" aria-label="−">&#8722;</button>
+        <span class="zoom-value" id="zoomValue" aria-live="polite">100%</span>
+        <button type="button" class="step-btn" id="zoomIn" aria-label="+">+</button>
+      </div>
+      <button type="button" class="btn btn-dark-ghost" id="zoomFit" data-i18n="fit">Вписать</button>
+    </div>
+
+    <div class="seg seg-dark" role="group" aria-label="language">
+      <button type="button" data-lang="ru" class="active">РУС</button>
+      <button type="button" data-lang="en">ENG</button>
+    </div>
+
+    <button type="button" class="btn btn-primary" id="printBtn" data-i18n-title="printHint">
+      <svg viewBox="0 0 24 24" class="btn-ico" aria-hidden="true"><path d="M7 8.5V3.5h10v5M7 17.5H5a1.5 1.5 0 0 1-1.5-1.5v-5A1.5 1.5 0 0 1 5 9.5h14a1.5 1.5 0 0 1 1.5 1.5v5a1.5 1.5 0 0 1-1.5 1.5h-2M7 14h10v6.5H7z"/></svg>
+      <span data-i18n="print">Печать / PDF</span>
+    </button>
+  </div>
+</header>
+
+<main class="layout">
+
+  <!-- ============ ПАНЕЛЬ УПРАВЛЕНИЯ ============ -->
+  <aside class="panel" id="panel">
+
+    <!-- 01 ЛИСТ -->
+    <section class="sec">
+      <h2 class="sec-title"><span class="sec-num">01</span><span data-i18n="secPaper">Лист</span></h2>
+
+      <div class="field">
+        <label for="f-format" data-i18n="format">Формат бумаги</label>
+        <select class="input" id="f-format" data-bind="paper.format">
+          <option value="A4">A4 — 210 × 297 мм</option>
+          <option value="A3">A3 — 297 × 420 мм</option>
+          <option value="Letter">Letter — 216 × 279 мм</option>
+          <option value="Legal">Legal — 216 × 356 мм</option>
+          <option value="custom" data-i18n="formatCustom">Свой размер</option>
+        </select>
+      </div>
+
+      <div class="row2" id="customSizeRow" hidden>
+        <div class="field">
+          <label for="f-cw" data-i18n="sheetW">Ширина листа</label>
+          <div class="with-unit">
+            <input class="input" type="number" id="f-cw" data-bind="paper.customW" min="50" max="2000" step="1">
+            <span class="unit" data-i18n="mm">мм</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-ch" data-i18n="sheetH">Высота листа</label>
+          <div class="with-unit">
+            <input class="input" type="number" id="f-ch" data-bind="paper.customH" min="50" max="2000" step="1">
+            <span class="unit" data-i18n="mm">мм</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label data-i18n="orientation">Ориентация</label>
+        <div class="seg" data-seg="paper.orientation">
+          <button type="button" data-val="portrait" data-i18n="portrait">Книжная</button>
+          <button type="button" data-val="landscape" data-i18n="landscape">Альбомная</button>
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label for="f-mx" data-i18n="marginX">Поле по X</label>
+          <div class="with-unit">
+            <input class="input" type="number" id="f-mx" data-bind="paper.marginX" min="0" max="100" step="1">
+            <span class="unit" data-i18n="mm">мм</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-my" data-i18n="marginY">Поле по Y</label>
+          <div class="with-unit">
+            <input class="input" type="number" id="f-my" data-bind="paper.marginY" min="0" max="100" step="1">
+            <span class="unit" data-i18n="mm">мм</span>
+          </div>
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-block btn-soft" id="fitGridBtn" data-i18n="fitGrid">Подобрать сетку под лист</button>
+    </section>
+
+    <!-- 02 БИРКА -->
+    <section class="sec">
+      <h2 class="sec-title"><span class="sec-num">02</span><span data-i18n="secTag">Бирка</span></h2>
+
+      <div class="field">
+        <label data-i18n="presetSizes">Готовые размеры</label>
+        <div class="chips" id="presetRow">
+          <button type="button" class="chip" data-preset="50,30">50 × 30</button>
+          <button type="button" class="chip" data-preset="60,35">60 × 35</button>
+          <button type="button" class="chip" data-preset="70,40">70 × 40</button>
+          <button type="button" class="chip" data-preset="40,25">40 × 25</button>
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label for="f-w" data-i18n="tagWidth">Ширина</label>
+          <div class="with-unit">
+            <input class="input" type="number" id="f-w" data-bind="tag.w" min="10" max="500" step="0.5">
+            <span class="unit" data-i18n="mm">мм</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-h" data-i18n="tagHeight">Высота</label>
+          <div class="with-unit">
+            <input class="input" type="number" id="f-h" data-bind="tag.h" min="10" max="500" step="0.5">
+            <span class="unit" data-i18n="mm">мм</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label for="f-gx" data-i18n="gapX">Зазор по X</label>
+          <div class="with-unit">
+            <input class="input" type="number" id="f-gx" data-bind="tag.gapX" min="0" max="50" step="0.5">
+            <span class="unit" data-i18n="mm">мм</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-gy" data-i18n="gapY">Зазор по Y</label>
+          <div class="with-unit">
+            <input class="input" type="number" id="f-gy" data-bind="tag.gapY" min="0" max="50" step="0.5">
+            <span class="unit" data-i18n="mm">мм</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label for="f-r" data-i18n="radius">Скругление</label>
+          <div class="with-unit">
+            <input class="input" type="number" id="f-r" data-bind="tag.radius" min="0" max="40" step="0.5">
+            <span class="unit" data-i18n="mm">мм</span>
+          </div>
+        </div>
+        <div class="field">
+          <label data-i18n="cutLine">Линия реза</label>
+          <div class="seg" data-seg="tag.cut">
+            <button type="button" data-val="none" data-i18n="cutNone">Нет</button>
+            <button type="button" data-val="dashed" data-i18n="cutDashed">Пунктир</button>
+            <button type="button" data-val="solid" data-i18n="cutSolid">Сплошная</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label data-i18n="tagBg">Фон бирки</label>
+        <div class="swatches" data-color="tag.bg">
+          <button type="button" class="swatch" data-val="#FFFFFF" style="--sw:#FFFFFF" aria-label="white"></button>
+          <button type="button" class="swatch" data-val="#F4ECDD" style="--sw:#F4ECDD" aria-label="cream"></button>
+          <button type="button" class="swatch" data-val="#17140F" style="--sw:#17140F" aria-label="ink"></button>
+          <button type="button" class="swatch" data-val="#E0501C" style="--sw:#E0501C" aria-label="accent"></button>
+        </div>
+      </div>
+
+      <label class="check">
+        <input type="checkbox" data-bind="tag.guides">
+        <span data-i18n="guides">Направляющие внутри (не печатаются)</span>
+      </label>
+    </section>
+
+    <!-- 03 ТЕКСТ -->
+    <section class="sec">
+      <h2 class="sec-title"><span class="sec-num">03</span><span data-i18n="secText">Текст</span></h2>
+
+      <div class="field">
+        <label for="f-tpl" data-i18n="textTemplate">Текст бирки</label>
+        <textarea class="input textarea" id="f-tpl" data-bind="text.template" rows="3" spellcheck="false"></textarea>
+        <p class="hint" data-i18n="textHint">Перенос строки — новая строка. {n} — номер бирки, {total} — всего бирок.</p>
+      </div>
+
+      <div class="field">
+        <label for="f-font" data-i18n="font">Шрифт</label>
+        <select class="input" id="f-font" data-bind="text.font">
+          <optgroup data-i18n="fontsWeb" label="Веб-шрифты">
+            <option value="Inter">Inter</option>
+            <option value="Oswald">Oswald</option>
+            <option value="Roboto Condensed">Roboto Condensed</option>
+            <option value="Montserrat">Montserrat</option>
+            <option value="Unbounded">Unbounded</option>
+            <option value="PT Serif">PT Serif</option>
+            <option value="Playfair Display">Playfair Display</option>
+            <option value="Caveat">Caveat</option>
+          </optgroup>
+          <optgroup data-i18n="fontsSystem" label="Системные">
+            <option value="Arial">Arial</option>
+            <option value="Georgia">Georgia</option>
+            <option value="Times New Roman">Times New Roman</option>
+            <option value="Courier New">Courier New</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label for="f-size" data-i18n="size">Кегль</label>
+          <div class="with-unit">
+            <input class="input" type="number" id="f-size" data-bind="text.size" min="1" max="40" step="0.5">
+            <span class="unit" data-i18n="mm">мм</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-weight" data-i18n="weight">Насыщенность</label>
+          <select class="input" id="f-weight" data-bind="text.weight">
+            <option value="300">300</option>
+            <option value="400">400</option>
+            <option value="500">500</option>
+            <option value="600">600</option>
+            <option value="700">700</option>
+            <option value="800">800</option>
+            <option value="900">900</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label data-i18n="align">Выравнивание</label>
+          <div class="seg" data-seg="text.align">
+            <button type="button" data-val="left" aria-label="left">&#8676;</button>
+            <button type="button" data-val="center" aria-label="center">&#8596;</button>
+            <button type="button" data-val="right" aria-label="right">&#8677;</button>
+          </div>
+        </div>
+        <div class="field">
+          <label data-i18n="case">Регистр</label>
+          <div class="seg" data-seg="text.upper">
+            <button type="button" data-val="false" data-i18n="caseNormal">Как написано</button>
+            <button type="button" data-val="true" data-i18n="caseUpper">ПРОПИСНЫЕ</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label for="f-ls" data-i18n="letterSpacing">Трекинг</label>
+          <input class="input" type="number" id="f-ls" data-bind="text.letterSpacing" min="-0.1" max="1" step="0.05">
+        </div>
+        <div class="field">
+          <label for="f-lh" data-i18n="lineHeight">Интерлиньяж</label>
+          <input class="input" type="number" id="f-lh" data-bind="text.lineHeight" min="0.8" max="2.6" step="0.05">
+        </div>
+      </div>
+
+      <div class="field">
+        <label data-i18n="color">Цвет текста</label>
+        <div class="swatches" data-color="text.color">
+          <button type="button" class="swatch" data-val="#17140F" style="--sw:#17140F" aria-label="ink"></button>
+          <button type="button" class="swatch" data-val="#FFFFFF" style="--sw:#FFFFFF" aria-label="white"></button>
+          <button type="button" class="swatch" data-val="#E0501C" style="--sw:#E0501C" aria-label="accent"></button>
+          <button type="button" class="swatch" data-val="#1F5E4B" style="--sw:#1F5E4B" aria-label="green"></button>
+          <input class="color-input" type="color" data-bind="text.color" aria-label="custom color">
+        </div>
+      </div>
+
+      <p class="hint hint-edit" data-i18n="editHint">Кликните по тексту прямо на бирке, чтобы поправить его отдельно.</p>
+    </section>
+
+    <!-- 04 ИКОНКА -->
+    <section class="sec">
+      <h2 class="sec-title"><span class="sec-num">04</span><span data-i18n="secIcon">Иконка</span></h2>
+
+      <div class="field">
+        <label data-i18n="iconPosition">Положение</label>
+        <div class="seg" data-seg="icon.pos">
+          <button type="button" data-val="none" data-i18n="iconNone">Нет</button>
+          <button type="button" data-val="left" data-i18n="iconLeft">Слева</button>
+          <button type="button" data-val="above" data-i18n="iconAbove">Сверху</button>
+          <button type="button" data-val="right" data-i18n="iconRight">Справа</button>
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label for="f-isize" data-i18n="iconSize">Размер</label>
+          <div class="with-unit">
+            <input class="input" type="number" id="f-isize" data-bind="icon.size" min="2" max="40" step="0.5">
+            <span class="unit" data-i18n="mm">мм</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-igap" data-i18n="iconGap">Отступ от текста</label>
+          <div class="with-unit">
+            <input class="input" type="number" id="f-igap" data-bind="icon.gap" min="0" max="10" step="0.5">
+            <span class="unit" data-i18n="mm">мм</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label data-i18n="iconPicker">Встроенные иконки</label>
+        <div class="icon-grid" id="iconGrid"></div>
+      </div>
+
+      <div class="field">
+        <label data-i18n="iconCustom">Своя иконка</label>
+        <div class="upload-row">
+          <label class="upload-btn" for="iconUpload">
+            <input type="file" id="iconUpload" accept=".svg,.png,image/svg+xml,image/png" hidden>
+            <svg viewBox="0 0 24 24" class="upload-ico" aria-hidden="true"><path d="M12 16V4M12 4l-4 4M12 4l4 4M4 16v2.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V16"/></svg>
+            <span data-i18n="iconUpload">Загрузить SVG / PNG</span>
+            <img id="uploadPreview" class="upload-preview" alt="" hidden>
+          </label>
+          <button type="button" class="btn btn-soft" id="iconRemove" hidden data-i18n="iconRemove">Убрать</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 05 НУМЕРАЦИЯ -->
+    <section class="sec">
+      <h2 class="sec-title"><span class="sec-num">05</span><span data-i18n="secNumber">Нумерация</span></h2>
+
+      <div class="row2">
+        <div class="field">
+          <label for="f-start" data-i18n="numberStart">Первый номер</label>
+          <input class="input" type="number" id="f-start" data-bind="number.start" min="-9999" max="99999" step="1">
+        </div>
+        <div class="field">
+          <label for="f-pad" data-i18n="numberPad">Разрядность</label>
+          <input class="input" type="number" id="f-pad" data-bind="number.pad" min="0" max="6" step="1">
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-block btn-soft" id="resetOverrides" data-i18n="resetOverrides">Сбросить правки текста</button>
+    </section>
+
+    <div class="panel-foot">
+      <span class="foot-dot" aria-hidden="true"></span>
+      <span data-i18n="savedHint">Все изменения сохраняются в этом браузере автоматически.</span>
+    </div>
+  </aside>
+
+  <!-- ============ ХОЛСТ ============ -->
+  <section class="stage" id="stage">
+    <div class="stage-scroll" id="stageScroll">
+      <div class="sheet-frame" id="sheetFrame">
+        <div class="sheet-scaler" id="sheetScaler">
+          <div class="sheet" id="sheet">
+            <div class="grid" id="grid"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sheet-caption" id="sheetCaption"></div>
+    </div>
+
+    <div class="legend" id="legend" aria-live="polite"></div>
+  </section>
+</main>
+
+<noscript>
+  <div class="noscript">Для работы редактора нужен JavaScript. / This editor requires JavaScript.</div>
+</noscript>
+
+<script src="i18n.js"></script>
+<script src="icons.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
