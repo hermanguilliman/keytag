@@ -831,6 +831,7 @@ select.input option{ color: var(--ink); }
 
 .tag{
   position: relative;
+  isolation: isolate;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -911,6 +912,7 @@ select.input option{ color: var(--ink); }
 .grid.show-guides .tag::after{
   content: "";
   position: absolute;
+  z-index: 2;
   inset: 2mm;
   border: 0.25mm dashed var(--accent);
   border-radius: 2mm;

@@ -936,15 +936,32 @@
 
   /* ---------- запуск ---------- */
 
-  buildIconPicker();
-  applyLang();
-  applyTheme();
-
-  if (state.zoomFit) {
-    requestAnimationFrame(() => { fitZoom(); save(); });
-  } else {
-    applyZoom();
+  function boot() {
+    buildIconPicker();
+    applyLang();
+    applyTheme();
+    try {
+      if (state.zoomFit) {
+        requestAnimationFrame(() => { fitZoom(); save(); });
+      } else {
+        applyZoom();
+      }
+      render();
+    } catch (err) {
+      /* Самовосстановление: если сохранённое состояние ломает рендер,
+         сбрасываем его к заводскому, чтобы интерфейс всегда оживал. */
+      console.error("KEYTAG: ошибка рендера, сброс состояния:", err);
+      try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+      state = mergeState(DEFAULTS, {});
+      try {
+        buildIconPicker();
+        applyLang();
+        applyTheme();
+        render();
+      } catch (err2) {
+        console.error("KEYTAG: повторная ошибка рендера:", err2);
+      }
+    }
   }
-
-  render();
+  boot();
 })();
