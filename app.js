@@ -1,5 +1,5 @@
 /* =========================================================
-   БИРКА — логика редактора
+   KEYTAG — логика редактора
    Состояние → рендер сетки в миллиметрах → печать.
    Без сборки и зависимостей: обычные скрипты, работает
    при открытии файла напрямую (file://).
@@ -45,7 +45,7 @@
 
   /* ---------- состояние и хранилище ---------- */
 
-  const STORE_KEY = "birka.studio.v1";
+  const STORE_KEY = "keytag.studio.v1";
 
   function isPlainObject(v) {
     return v !== null && typeof v === "object" && !Array.isArray(v);
@@ -117,6 +117,9 @@
 
   function applyLang() {
     document.documentElement.lang = state.lang;
+    document.title = t("docTitle");
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) metaDesc.setAttribute("content", t("docDesc"));
 
     $$("[data-i18n]").forEach((el) => {
       const v = t(el.dataset.i18n);

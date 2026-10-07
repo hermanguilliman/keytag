@@ -2,8 +2,10 @@
 
 window.I18N = {
   ru: {
-    brandName: "БИРКА",
+    brandName: "KEYTAG",
     brandSub: "мастерская ключевых бирок",
+    docTitle: "KEYTAG — редактор ключевых бирок",
+    docDesc: "Статический редактор сетки бирок для ключей: реальные размеры в миллиметрах, текст, иконки, точная печать.",
 
     zoom: "Масштаб",
     fit: "Вписать",
@@ -87,6 +89,8 @@ window.I18N = {
   en: {
     brandName: "KEYTAG",
     brandSub: "key tag studio",
+    docTitle: "KEYTAG — key tag sticker editor",
+    docDesc: "Static editor for key tag grids: real millimetre sizes, editable text, icons and precise printing.",
 
     zoom: "Zoom",
     fit: "Fit",
