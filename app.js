@@ -40,6 +40,7 @@
     number: { start: 1, pad: 2 },
     zoom: 1,
     zoomFit: true,
+    theme: "light",
     overrides: {}
   };
 
@@ -101,6 +102,14 @@
   }
 
   let state = loadState() || mergeState(DEFAULTS, {});
+
+  /* Первый запуск: берём тёмную тему, если она включена в системе */
+  try {
+    if (localStorage.getItem(STORE_KEY) === null &&
+        window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      state.theme = "dark";
+    }
+  } catch (err) { /* если localStorage недоступен — остаётся светлая тема */ }
 
   /* ---------- перевод ---------- */
 
@@ -223,6 +232,9 @@
   const iconGrid = $("#iconGrid");
   const uploadPreview = $("#uploadPreview");
   const iconRemove = $("#iconRemove");
+  const annotW = $("#annotW");
+  const annotH = $("#annotH");
+  const annotR = $("#annotR");
 
   /* Динамическое @page — размер листа для печати совпадает с настройками */
   const pageStyle = document.createElement("style");
@@ -394,6 +406,7 @@
     frame.style.height = px.h * state.zoom + "px";
     zoomValue.textContent = Math.round(state.zoom * 100) + "%";
     renderCaption();
+    updateAnnot();
   }
 
   function setZoom(z, isFit) {
@@ -676,10 +689,259 @@
     resizeTimer = setTimeout(() => { fitZoom(); save(); }, 150);
   });
 
+  /* ---------- тема ---------- */
+
+  function applyTheme() {
+    document.documentElement.setAttribute("data-theme", state.theme === "dark" ? "dark" : "light");
+  }
+
+  /* ---------- тост ---------- */
+
+  let toastTimer = null;
+  function toast(msg) {
+    let el = document.querySelector(".toast");
+    if (!el) {
+      el = document.createElement("div");
+      el.className = "toast";
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    window.requestAnimationFrame(() => el.classList.add("show"));
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove("show"), 2200);
+  }
+
+  /* ---------- размерные аннотации (только экран) ---------- */
+
+  function fmtNum(v) {
+    return (Math.round(v * 10) / 10).toLocaleString("en-US", { maximumFractionDigits: 1 });
+  }
+
+  function updateAnnot() {
+    const s = sheetSize();
+    const z = state.zoom;
+    if (annotW) annotW.textContent = fmtNum(s.w) + " mm";
+    if (annotH) annotH.textContent = fmtNum(s.h) + " mm";
+    const r = Number(state.tag.radius) || 0;
+    if (annotR) {
+      if (r > 0) {
+        annotR.textContent = "R " + fmtNum(r);
+        annotR.style.left = (state.paper.marginX * MM_PX * z + 4) + "px";
+        annotR.style.top = (state.paper.marginY * MM_PX * z + 4) + "px";
+        annotR.style.display = "flex";
+      } else {
+        annotR.style.display = "none";
+      }
+    }
+  }
+
+  /* ---------- удобный ввод чисел: выделяем значение при фокусе ---------- */
+
+  panel.addEventListener("focusin", (e) => {
+    if (e.target && e.target.matches && e.target.matches('input[type="number"]')) {
+      setTimeout(() => { try { e.target.select(); } catch (err) {} }, 0);
+    }
+  });
+  panel.addEventListener("mouseup", (e) => {
+    const el = e.target;
+    if (el && el.matches && el.matches('input[type="number"]') && el === document.activeElement) {
+      e.preventDefault(); // клик не снимает выделение «выбрать всё»
+    }
+  });
+
+  /* ---------- сброс всех настроек ---------- */
+
+  $("#resetAllBtn").addEventListener("click", () => {
+    state = mergeState(DEFAULTS, {
+      lang: state.lang,
+      theme: state.theme,
+      icon: { key: "key", custom: null, pos: "above", size: 7, gap: 1.5 },
+      number: { start: 1, pad: 2 },
+      overrides: {}
+    });
+    applyLang();
+    applyTheme();
+    render();
+    toast(t("resetDone"));
+  });
+
+  /* ---------- экспорт PNG ---------- */
+
+  function tagSvgData(key) {
+    const def = window.ICONS[key] || window.ICONS.key;
+    return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
+      '<g fill="none" stroke="' + state.text.color + '" stroke-width="1.7" ' +
+      'stroke-linecap="round" stroke-linejoin="round">' + def.svg + "</g></svg>"
+    );
+  }
+
+  function roundedRect(ctx, x, y, w, h, r) {
+    r = Math.max(0, Math.min(r, w / 2, h / 2));
+    ctx.beginPath();
+    if (r === 0) { ctx.rect(x, y, w, h); return; }
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function drawTextLine(ctx, line, cx, y, font, color, lsPx) {
+    ctx.font = font;
+    ctx.fillStyle = color;
+    ctx.textBaseline = "middle";
+    const chars = Array.from(line);
+    if (lsPx === 0 || chars.length < 2) {
+      ctx.textAlign = "center";
+      ctx.fillText(line, cx, y);
+      return;
+    }
+    const widths = chars.map((c) => ctx.measureText(c).width);
+    const total = widths.reduce((a, b) => a + b, 0) + lsPx * (chars.length - 1);
+    let x = cx - total / 2;
+    ctx.textAlign = "left";
+    chars.forEach((c, idx) => {
+      ctx.fillText(c, x, y);
+      x += widths[idx] + lsPx;
+    });
+  }
+
+  async function exportPNG() {
+    const s = sheetSize();
+    const scale = 2; // ≈192 dpi
+    const px = MM_PX * scale;
+    const cv = document.createElement("canvas");
+    cv.width = Math.round(s.w * px);
+    cv.height = Math.round(s.h * px);
+    const ctx = cv.getContext("2d");
+    if (!ctx) return;
+
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, cv.width, cv.height);
+
+    const count = countTags();
+    const mX = state.paper.marginX * px;
+    const mY = state.paper.marginY * px;
+    const tw = state.tag.w * px;
+    const th = state.tag.h * px;
+    const gapX = state.tag.gapX * px;
+    const gapY = state.tag.gapY * px;
+    const radius = state.tag.radius * px;
+    const fontName = fontStack(state.text.font);
+    const fontSize = state.text.size * px;
+    const lineHeight = state.text.lineHeight;
+    const lsPx = state.text.letterSpacing * fontSize;
+    const iconSize = state.icon.size * px;
+    const iconGap = state.icon.gap * px;
+    const withIcon = state.icon.pos !== "none";
+
+    const img = new Image();
+    await new Promise((resolve) => {
+      img.onload = resolve;
+      img.onerror = resolve;
+      img.src = state.icon.custom ? state.icon.custom : tagSvgData(state.icon.key);
+    });
+
+    for (let i = 0; i < count; i++) {
+      const col = i % state.grid.cols;
+      const row = Math.floor(i / state.grid.cols);
+      const x = mX + col * (tw + gapX);
+      const y = mY + row * (th + gapY);
+
+      /* фон */
+      ctx.fillStyle = state.tag.bg;
+      roundedRect(ctx, x, y, tw, th, Math.min(radius, tw / 2, th / 2));
+      ctx.fill();
+
+      /* линия реза */
+      if (state.tag.cut === "dashed" || state.tag.cut === "solid") {
+        ctx.strokeStyle = state.tag.cut === "solid" ? "#1B1915" : "#8C8578";
+        ctx.lineWidth = 0.3 * px;
+        ctx.setLineDash(state.tag.cut === "dashed" ? [1.2 * px, 1 * px] : []);
+        const inset = 0.15 * px;
+        roundedRect(ctx, x + inset, y + inset, tw - 2 * inset, th - 2 * inset,
+          Math.max(0, Math.min(radius, tw / 2, th / 2) - inset));
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+
+      /* текст */
+      const text = tagText(i);
+      const lines = text.split("\n");
+      const totalH = lines.length * fontSize * lineHeight;
+
+      /* иконка + текст */
+      ctx.textAlign = "center";
+      if (withIcon && img.naturalWidth) {
+        const column = state.icon.pos === "above";
+        if (column) {
+          const stackH = totalH + (withIcon ? iconSize + iconGap : 0);
+          const iconTop = y + (th - stackH) / 2;
+          ctx.drawImage(img, x + (tw - iconSize) / 2, iconTop, iconSize, iconSize);
+          lines.forEach((ln, idx) => {
+            drawTextLine(ctx, ln, x + tw / 2,
+              iconTop + iconSize + iconGap + (idx + 0.5) * fontSize * lineHeight,
+              state.text.weight + " " + fontSize + "px " + fontName, state.text.color, lsPx);
+          });
+        } else {
+          ctx.font = state.text.weight + " " + fontSize + "px " + fontName;
+          const maxW = Math.max.apply(null, lines.map((ln) => ctx.measureText(ln).width));
+          const blockW = iconSize + iconGap + maxW;
+          const blockLeft = x + (tw - blockW) / 2;
+          const iconX = state.icon.pos === "right"
+            ? x + tw - (tw - blockW) / 2 - iconSize
+            : blockLeft;
+          const textCx = blockLeft + iconSize + iconGap + maxW / 2;
+          const textTopY = y + (th - totalH) / 2;
+          ctx.drawImage(img, iconX, y + (th - iconSize) / 2, iconSize, iconSize);
+          lines.forEach((ln, idx) => {
+            drawTextLine(ctx, ln, textCx, textTopY + (idx + 0.5) * fontSize * lineHeight,
+              state.text.weight + " " + fontSize + "px " + fontName, state.text.color, lsPx);
+          });
+        }
+      } else {
+        const top = y + (th - totalH) / 2;
+        lines.forEach((ln, idx) => {
+          drawTextLine(ctx, ln, x + tw / 2, top + (idx + 0.5) * fontSize * lineHeight,
+            state.text.weight + " " + fontSize + "px " + fontName, state.text.color, lsPx);
+        });
+      }
+    }
+
+    try {
+      const blob = await new Promise((resolve) => cv.toBlob(resolve, "image/png"));
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "keytag-" + state.tag.w + "x" + state.tag.h + "-" + count + "pcs.png";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 3000);
+    } catch (err) { /* в headless без download нет — не критично */ }
+    window.__lastPng = cv.toDataURL("image/png");
+    toast(t("pngDone"));
+  }
+
+  /* ---------- события шапки/инструментов ---------- */
+
+  $("#themeBtn").addEventListener("click", () => {
+    state.theme = state.theme === "dark" ? "light" : "dark";
+    applyTheme();
+    save();
+  });
+
+  $("#pngBtn").addEventListener("click", () => {
+    exportPNG();
+  });
+
   /* ---------- запуск ---------- */
 
   buildIconPicker();
   applyLang();
+  applyTheme();
 
   if (state.zoomFit) {
     requestAnimationFrame(() => { fitZoom(); save(); });
