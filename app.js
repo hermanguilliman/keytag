@@ -232,8 +232,6 @@
   const iconGrid = $("#iconGrid");
   const uploadPreview = $("#uploadPreview");
   const iconRemove = $("#iconRemove");
-  const annotW = $("#annotW");
-  const annotH = $("#annotH");
   const annotR = $("#annotR");
 
   /* Динамическое @page — размер листа для печати совпадает с настройками */
@@ -718,10 +716,7 @@
   }
 
   function updateAnnot() {
-    const s = sheetSize();
     const z = state.zoom;
-    if (annotW) annotW.textContent = fmtNum(s.w) + " mm";
-    if (annotH) annotH.textContent = fmtNum(s.h) + " mm";
     const r = Number(state.tag.radius) || 0;
     if (annotR) {
       if (r > 0) {

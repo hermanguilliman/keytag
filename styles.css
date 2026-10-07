@@ -760,25 +760,6 @@ select.input option{ color: var(--ink); }
   height: 1px;
   background: var(--line);
 }
-.annot-w{
-  top: -23px;
-  left: 0;
-  right: 0;
-}
-.annot-w::before,
-.annot-w::after{
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-}
-.annot-w::before{ left: 0; }
-.annot-w::after{ right: 0; }
-.annot-h{
-  left: -38px;
-  top: 50%;
-  transform: translateY(-50%) rotate(-90deg);
-  flex-direction: row;
-}
 .annot-r{
   left: 0;
   top: 0;
@@ -1123,7 +1104,6 @@ select.input option{ color: var(--ink); }
   }
   .stage{ order: 2; min-height: 62vh; }
   .stage-scroll{ padding: 40px 14px 16px; }
-  .annot-h{ display: none; }
   #zoomFit{ display: none; }
   .output-head{ display: none; }
   .legend{ width: 100%; }
