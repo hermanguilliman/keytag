@@ -918,7 +918,7 @@
       const gd = document.getElementById("guides");
       const rnd = (x) => (x === undefined || x === null || Number.isNaN(x)) ? "-" : Math.round(x);
       const m = [
-        "K v1.2.3  dpr " + Number(window.devicePixelRatio).toFixed(2),
+        "K v1.2.4  dpr " + Number(window.devicePixelRatio).toFixed(2),
         "view " + innerWidth + "x" + innerHeight + "  docScroll " + d.scrollHeight,
         "bodyScroll " + rnd(document.body.scrollHeight) + "  stageScroll " + rnd(st.scrollHeight) + "/" + rnd(st.clientHeight),
         "frame " + rnd(fr.getBoundingClientRect().height) + "  guides " + rnd(gd.getBoundingClientRect().height) +
