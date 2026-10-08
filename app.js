@@ -36,7 +36,7 @@
       align: "center", color: "#17140F",
       letterSpacing: 0, lineHeight: 1.15, upper: false
     },
-    icon: { key: "key", custom: null, pos: "above", size: 7, gap: 1.5 },
+    icon: { key: "key", custom: null, pos: "above", size: 7, gap: 1.5, byTag: {} },
     number: { start: 1, pad: 2 },
     zoom: 1,
     zoomFit: true,
@@ -57,8 +57,16 @@
     Object.keys(base).forEach((k) => {
       const b = base[k];
       const e = extra && Object.prototype.hasOwnProperty.call(extra, k) ? extra[k] : undefined;
-      if (isPlainObject(b)) out[k] = mergeState(b, isPlainObject(e) ? e : {});
-      else out[k] = e === undefined ? b : e;
+      /* Пустой объект-контейнер по умолчанию (overrides, icon.byTag и т.п.)
+         заполняется данными из сохранения целиком, иначе правки/иконки
+         отдельных бирок терялись бы при перезагрузке. */
+      if (isPlainObject(b)) {
+        out[k] = Object.keys(b).length
+          ? mergeState(b, isPlainObject(e) ? e : {})
+          : (e === undefined ? b : structuredClone(e));
+      } else {
+        out[k] = e === undefined ? b : e;
+      }
     });
     return out;
   }
@@ -84,6 +92,11 @@
         try {
           const light = JSON.parse(JSON.stringify(state));
           light.icon.custom = null;
+          if (light.icon.byTag) {
+            Object.keys(light.icon.byTag).forEach((k) => {
+              if (light.icon.byTag[k] && light.icon.byTag[k].custom) light.icon.byTag[k].custom = null;
+            });
+          }
           localStorage.setItem(STORE_KEY, JSON.stringify(light));
         } catch (err2) { /* не критично */ }
       }
@@ -233,6 +246,13 @@
   const uploadPreview = $("#uploadPreview");
   const iconRemove = $("#iconRemove");
   const guidesEl = $("#guides");
+  const iconScope = $("#iconScope");
+  const iconScopeText = $("#iconScopeText");
+  const iconScopeNone = $("#iconScopeNone");
+  const iconScopeReset = $("#iconScopeReset");
+
+  /* Выбранная на полотне бирка (для индивидуальной иконки); null = общая */
+  let selectedTag = null;
 
   /* Динамическое @page — размер листа для печати совпадает с настройками */
   const pageStyle = document.createElement("style");
@@ -255,19 +275,72 @@
     return '"' + name + '", ' + generic;
   }
 
-  function iconNode() {
+  /* ---------- иконки: общая + индивидуальные по биркам ----------
+     state.icon.byTag[String(i)] = { key, custom } — переопределение для
+     бирки i. custom != null → своя загруженная картинка;
+     key === "none" && !custom → на бирке нет иконки;
+     иначе — встроенная по ключу. entry без значения = пустое (общая). */
+
+  function hasIconOverride(i) {
+    return Object.prototype.hasOwnProperty.call(state.icon.byTag, String(i));
+  }
+
+  function iconOverride(i) {
+    const o = state.icon.byTag[String(i)];
+    if (o && o.custom) return { custom: o.custom, key: null, global: false };
+    if (o && o.key) return { key: o.key, custom: null, global: false };
+    return { key: state.icon.key, custom: state.icon.custom, global: true };
+  }
+
+  /* иконка «как сейчас рисуется» для бирки i (с учётом выбранной бирки) */
+  function displayIcon(i) {
+    if (i != null && i < countTags() && hasIconOverride(i)) return iconOverride(i);
+    return { key: state.icon.key, custom: state.icon.custom, global: true };
+  }
+
+  function iconDisabled(i) {
+    const o = state.icon.byTag[String(i)];
+    return !!(o && o.key === "none" && !o.custom);
+  }
+
+  function iconSrcFor(i) {
+    if (iconDisabled(i)) return null;
+    const o = iconOverride(i);
+    return o.custom || tagSvgData(o.key || "key");
+  }
+
+  function iconNode(i) {
+    const cur = iconOverride(i);
     const el = document.createElement("div");
     el.className = "tag-ico";
-    if (state.icon.custom) {
+    if (cur.custom) {
       const img = document.createElement("img");
-      img.src = state.icon.custom;
+      img.src = cur.custom;
       img.alt = "";
       el.appendChild(img);
     } else {
-      const def = window.ICONS[state.icon.key] || window.ICONS.key;
+      const def = window.ICONS[cur.key || "key"] || window.ICONS.key;
       el.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + def.svg + "</svg>";
     }
     return el;
+  }
+
+  /* Применить встроенную иконку: к выбранной бирке или ко всем сразу.
+     Если индивидуальная настройка совпадает с общей — убираем её. */
+  function applyIcon(key) {
+    if (selectedTag != null && selectedTag < countTags()) {
+      const i = String(selectedTag);
+      state.icon.byTag[i] = { key, custom: null };
+      if (!state.icon.custom && key === state.icon.key) delete state.icon.byTag[i];
+    } else {
+      state.icon.key = key;
+      state.icon.custom = null;
+      /* чистим индивидуальные, ставшие равными общей */
+      Object.keys(state.icon.byTag).forEach((k) => {
+        const o = state.icon.byTag[k];
+        if (o && !o.custom && (o.key === key || o.key === "none")) delete state.icon.byTag[k];
+      });
+    }
   }
 
   function buildIconPicker() {
@@ -300,11 +373,13 @@
     grid.dataset.cut = state.tag.cut;
 
     const count = countTags();
+    if (selectedTag != null && selectedTag >= count) selectedTag = null;
     const frag = document.createDocumentFragment();
 
     for (let i = 0; i < count; i++) {
       const tag = document.createElement("div");
       tag.className = "tag";
+      tag.dataset.i = String(i);
       tag.style.setProperty("--tag-r", state.tag.radius + "mm");
       tag.style.setProperty("--tag-bg", state.tag.bg);
       tag.style.setProperty("--tag-color", state.text.color);
@@ -319,9 +394,9 @@
 
       const content = document.createElement("div");
       content.className = "tag-content";
-      content.dataset.iconPos = state.icon.pos;
+      content.dataset.iconPos = iconDisabled(i) ? "none" : state.icon.pos;
 
-      if (state.icon.pos !== "none") content.appendChild(iconNode());
+      if (state.icon.pos !== "none" && !iconDisabled(i)) content.appendChild(iconNode(i));
 
       const txt = document.createElement("div");
       txt.className = "tag-text";
@@ -335,6 +410,8 @@
       tag.appendChild(content);
 
       if (hasOverride(i)) tag.classList.add("has-override");
+      if (hasIconOverride(i)) tag.classList.add("has-icon-override");
+      if (selectedTag === i) tag.classList.add("selected");
 
       const reset = document.createElement("button");
       reset.type = "button";
@@ -450,12 +527,14 @@
 
     if (customSizeRow) customSizeRow.hidden = state.paper.format !== "custom";
 
+    const curIcon = displayIcon(selectedTag);
+
     $$("#iconGrid .icon-btn").forEach((b) => {
-      b.classList.toggle("active", !state.icon.custom && b.dataset.icon === state.icon.key);
+      b.classList.toggle("active", !curIcon.custom && b.dataset.icon === curIcon.key);
     });
 
-    if (state.icon.custom) {
-      uploadPreview.src = state.icon.custom;
+    if (curIcon.custom) {
+      uploadPreview.src = curIcon.custom;
       uploadPreview.hidden = false;
       iconRemove.hidden = false;
     } else {
@@ -463,6 +542,24 @@
       uploadPreview.hidden = true;
       iconRemove.hidden = true;
     }
+
+    updateIconScope();
+  }
+
+  /* ---------- scope индивидуальной иконки ---------- */
+
+  function updateIconScope() {
+    if (!iconScope) return;
+    const sel = selectedTag != null && selectedTag < countTags() ? selectedTag : null;
+    const off = !!(sel != null && iconDisabled(sel));
+    if (sel == null) {
+      iconScopeText.textContent = t("iconScopeAll");
+    } else {
+      iconScopeText.textContent = t("iconScopeTag", { n: sel + 1 });
+    }
+    iconScope.classList.toggle("scope-active", sel != null);
+    $$(".chip", iconScope).forEach((chip) => { chip.hidden = sel == null; });
+    if (iconScopeNone) iconScopeNone.classList.toggle("active", off);
   }
 
   /* ---------- общий рендер ---------- */
@@ -536,11 +633,10 @@
       return;
     }
 
-    /* выбор иконки */
+    /* выбор иконки: общая или для выбранной бирки */
     const iconBtn = e.target.closest("[data-icon]");
     if (iconBtn) {
-      state.icon.key = iconBtn.dataset.icon;
-      state.icon.custom = null;
+      applyIcon(iconBtn.dataset.icon);
       render();
       return;
     }
@@ -568,7 +664,43 @@
   });
 
   iconRemove.addEventListener("click", () => {
-    state.icon.custom = null;
+    if (selectedTag != null) {
+      /* убрать свою иконку у выбранной бирки */
+      const i = String(selectedTag);
+      const o = state.icon.byTag[i];
+      if (o && o.custom) {
+        delete state.icon.byTag[i];
+        render();
+      }
+    } else {
+      state.icon.custom = null;
+      render();
+    }
+  });
+
+  /* «Без иконки» — для выбранной бирки */
+  iconScopeNone.addEventListener("click", () => {
+    if (selectedTag == null) return;
+    const i = String(selectedTag);
+    if (iconDisabled(selectedTag)) {
+      delete state.icon.byTag[i]; // повторный клик — вернуть иконку
+    } else {
+      state.icon.byTag[i] = { key: "none", custom: null };
+    }
+    render();
+  });
+
+  /* «Общая» — убрать индивидуальную иконку выбранной бирки */
+  iconScopeReset.addEventListener("click", () => {
+    if (selectedTag == null) return;
+    delete state.icon.byTag[String(selectedTag)];
+    render();
+  });
+
+  /* Сбросить все индивидуальные иконки */
+  $("#resetIconOverrides").addEventListener("click", () => {
+    state.icon.byTag = {};
+    selectedTag = null;
     render();
   });
 
@@ -577,7 +709,13 @@
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      state.icon.custom = String(reader.result);
+      const data = String(reader.result);
+      if (selectedTag != null && selectedTag < countTags()) {
+        /* своя иконка — только для выбранной бирки */
+        state.icon.byTag[String(selectedTag)] = { key: null, custom: data };
+      } else {
+        state.icon.custom = data;
+      }
       render();
     };
     reader.readAsDataURL(file);
@@ -646,10 +784,21 @@
       return;
     }
 
-    if (e.target.classList && e.target.classList.contains("tag-text")) return;
-
     const tag = e.target.closest(".tag");
     if (!tag) return;
+
+    /* выбор бирки для индивидуальной иконки (клик по любой части бирки,
+       включая текст). Повторный клик снимает выбор. Сетку НЕ перестраиваем,
+       чтобы не терять фокус при правке текста. */
+    const i = Number(tag.dataset.i);
+    const nextSel = selectedTag === i ? null : i;
+    selectedTag = nextSel;
+    $$(".tag.selected", grid).forEach((t) => t.classList.remove("selected"));
+    tag.classList.toggle("selected", selectedTag === i);
+    syncControls();
+
+    if (e.target.classList && e.target.classList.contains("tag-text")) return;
+
     const txt = $(".tag-text", tag);
     if (!txt) return;
     txt.focus();
@@ -769,7 +918,7 @@
       const gd = document.getElementById("guides");
       const rnd = (x) => (x === undefined || x === null || Number.isNaN(x)) ? "-" : Math.round(x);
       const m = [
-        "K v1.2.2  dpr " + Number(window.devicePixelRatio).toFixed(2),
+        "K v1.2.3  dpr " + Number(window.devicePixelRatio).toFixed(2),
         "view " + innerWidth + "x" + innerHeight + "  docScroll " + d.scrollHeight,
         "bodyScroll " + rnd(document.body.scrollHeight) + "  stageScroll " + rnd(st.scrollHeight) + "/" + rnd(st.clientHeight),
         "frame " + rnd(fr.getBoundingClientRect().height) + "  guides " + rnd(gd.getBoundingClientRect().height) +
@@ -815,7 +964,7 @@
     state = mergeState(DEFAULTS, {
       lang: state.lang,
       theme: state.theme,
-      icon: { key: "key", custom: null, pos: "above", size: 7, gap: 1.5 },
+icon: { key: "key", custom: null, pos: "above", size: 7, gap: 1.5, byTag: {} },
       number: { start: 1, pad: 2 },
       overrides: {}
     });
@@ -895,20 +1044,25 @@
     const lsPx = state.text.letterSpacing * fontSize;
     const iconSize = state.icon.size * px;
     const iconGap = state.icon.gap * px;
-    const withIcon = state.icon.pos !== "none";
-
-    const img = new Image();
-    await new Promise((resolve) => {
-      img.onload = resolve;
-      img.onerror = resolve;
-      img.src = state.icon.custom ? state.icon.custom : tagSvgData(state.icon.key);
-    });
+    /* иконка + текст: общая + индивидуальные по биркам */
+    const iconSrcs = [];
+    for (let i = 0; i < count; i++) iconSrcs[i] = iconSrcFor(i);
+    const imgBox = new Map();
+    await Promise.all([...new Set(iconSrcs.filter(Boolean))].map((src) => new Promise((resolve) => {
+      const im = new Image();
+      im.onload = resolve;
+      im.onerror = resolve;
+      im.src = src;
+      imgBox.set(src, im);
+    })));
 
     for (let i = 0; i < count; i++) {
       const col = i % state.grid.cols;
       const row = Math.floor(i / state.grid.cols);
       const x = mX + col * (tw + gapX);
       const y = mY + row * (th + gapY);
+      const withIcon = state.icon.pos !== "none" && !iconDisabled(i);
+      const img = imgBox.get(iconSrcs[i]);
 
       /* фон */
       ctx.fillStyle = state.tag.bg;

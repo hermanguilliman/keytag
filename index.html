@@ -51,7 +51,7 @@
   </div>
 
   <div class="topbar-actions">
-    <span class="ver" aria-hidden="true">v1.2.2</span>
+    <span class="ver" aria-hidden="true">v1.2.3</span>
 
     <button type="button" class="tbtn" id="themeBtn" data-i18n-title="themeLabel">
       <svg class="ico-16" viewBox="0 0 24 24" aria-hidden="true">
@@ -136,6 +136,13 @@
         </div>
       </div>
 
+      <div class="icon-scope" id="iconScope">
+        <span class="icon-scope-text" id="iconScopeText" data-i18n="iconScopeAll">Иконка для всех бирок</span>
+        <span class="icon-scope-actions" id="iconScopeActions">
+          <button type="button" class="chip" id="iconScopeNone" data-i18n="iconScopeNone">Без иконки на бирке</button>
+          <button type="button" class="chip" id="iconScopeReset" data-i18n="iconScopeReset">Общая иконка</button>
+        </span>
+      </div>
       <div class="field">
         <label data-i18n="iconPicker">Встроенные иконки</label>
         <div class="icon-grid" id="iconGrid"></div>
@@ -396,6 +403,11 @@
       <p class="hint option-line" data-i18n="printHint">Печать: в диалоге выберите масштаб 100% и «без полей», либо «Сохранить как PDF».</p>
 
       <button type="button" class="btn btn-block btn-ghost" id="resetOverrides" data-i18n="resetOverrides">Сбросить правки текста</button>
+
+      <div class="field field-gap">
+        <p class="hint option-line" data-i18n="resetIconHint">Индивидуальные иконки у бирок — вернуть общую для всех.</p>
+        <button type="button" class="btn btn-block btn-ghost" id="resetIconOverrides" data-i18n="resetIcons">Сбросить индивидуальные иконки</button>
+      </div>
 
       <div class="field field-gap">
         <p class="hint option-line" data-i18n="resetAllHint">Вернуть значения по умолчанию. Внешние надписи останутся.</p>

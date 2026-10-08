@@ -625,6 +625,46 @@ select.input option{ color: var(--ink); }
   box-shadow: inset 0 0 0 1px var(--accent);
 }
 
+.icon-scope{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  background: var(--surface);
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+.icon-scope.scope-active{
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.icon-scope-text{ flex: 1 1 auto; }
+.icon-scope-actions{ display: flex; gap: 6px; }
+.chip{
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 11px;
+  line-height: 1;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: border-color var(--t-fast), color var(--t-fast), background var(--t-fast);
+}
+.chip:hover{ border-color: var(--accent); color: var(--accent); }
+.chip.active{
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
 .upload-row{ display: flex; gap: 8px; align-items: stretch; }
 .upload-btn{
   flex: 1 1 auto;
@@ -808,6 +848,7 @@ select.input option{ color: var(--ink); }
   transition: outline-color .12s ease;
   outline: 0.4mm solid transparent;
   outline-offset: 0.3mm;
+  cursor: pointer;
 }
 
 .grid[data-cut="dashed"] .tag{
@@ -906,6 +947,23 @@ select.input option{ color: var(--ink); }
 }
 
 .tag:hover{ outline-color: var(--accent); }
+
+/* выделенная бирка (индивидуальная иконка) */
+.tag.selected{ outline: 0.6mm solid var(--accent); outline-offset: 0.4mm; }
+
+/* маркер индивидуальной иконки (только экран): левый верхний угол,
+   текстовая правка — левый нижний */
+.tag.has-icon-override::after{
+  content: "";
+  position: absolute;
+  left: 1.2mm;
+  top: 1.2mm;
+  width: 1.8mm;
+  height: 1.8mm;
+  border-radius: 50%;
+  background: var(--margin-guide);
+  pointer-events: none;
+}
 
 .tag-reset{
   position: absolute;
@@ -1174,9 +1232,11 @@ select.input option{ color: var(--ink); }
   }
 
   .tag:hover{ outline-color: transparent !important; }
+  .tag.selected{ outline: none !important; }
 
   .guides,
-  .tag.has-override::before{
+  .tag.has-override::before,
+  .tag.has-icon-override::after{
     display: none !important;
   }
 
