@@ -627,9 +627,11 @@ select.input option{ color: var(--ink); }
 
 .icon-scope{
   display: flex;
+  flex-wrap: wrap;
+  row-gap: 5px;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  column-gap: 8px;
   margin: 0 0 6px;
   padding: 6px 8px;
   border: 1px solid var(--line);
@@ -644,8 +646,8 @@ select.input option{ color: var(--ink); }
   background: var(--accent-soft);
   color: var(--ink);
 }
-.icon-scope-text{ flex: 1 1 auto; }
-.icon-scope-actions{ display: flex; gap: 6px; }
+.icon-scope-text{ flex: 1 1 100%; min-width: 0; }
+.icon-scope-actions{ display: flex; gap: 6px; margin-left: auto; }
 .chip{
   flex: 0 0 auto;
   border: 1px solid var(--line);
