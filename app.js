@@ -232,7 +232,6 @@
   const iconGrid = $("#iconGrid");
   const uploadPreview = $("#uploadPreview");
   const iconRemove = $("#iconRemove");
-  const annotR = $("#annotR");
   const guidesEl = $("#guides");
 
   /* Динамическое @page — размер листа для печати совпадает с настройками */
@@ -404,7 +403,6 @@
     frame.style.height = px.h * state.zoom + "px";
     zoomValue.textContent = Math.round(state.zoom * 100) + "%";
     renderCaption();
-    updateAnnot();
     renderGuides();
   }
 
@@ -717,27 +715,6 @@
     toastTimer = setTimeout(() => el.classList.remove("show"), 2200);
   }
 
-  /* ---------- размерные аннотации (только экран) ---------- */
-
-  function fmtNum(v) {
-    return (Math.round(v * 10) / 10).toLocaleString("en-US", { maximumFractionDigits: 1 });
-  }
-
-  function updateAnnot() {
-    const z = state.zoom;
-    const r = Number(state.tag.radius) || 0;
-    if (annotR) {
-      if (r > 0) {
-        annotR.textContent = "R " + fmtNum(r);
-        annotR.style.left = (state.paper.marginX * MM_PX * z + 4) + "px";
-        annotR.style.top = (state.paper.marginY * MM_PX * z + 4) + "px";
-        annotR.style.display = "flex";
-      } else {
-        annotR.style.display = "none";
-      }
-    }
-  }
-
   /* Направляющие: отрисовываются SVG-оверлеем НАД листом, вне
      масштабируемого слоя (.sheet-scaler), чтобы пунктир не
      растеризовывался при scale() на GPU. Оверлей вне масштабируемого
@@ -792,7 +769,7 @@
       const gd = document.getElementById("guides");
       const rnd = (x) => (x === undefined || x === null || Number.isNaN(x)) ? "-" : Math.round(x);
       const m = [
-        "K v1.2.1  dpr " + Number(window.devicePixelRatio).toFixed(2),
+        "K v1.2.2  dpr " + Number(window.devicePixelRatio).toFixed(2),
         "view " + innerWidth + "x" + innerHeight + "  docScroll " + d.scrollHeight,
         "bodyScroll " + rnd(document.body.scrollHeight) + "  stageScroll " + rnd(st.scrollHeight) + "/" + rnd(st.clientHeight),
         "frame " + rnd(fr.getBoundingClientRect().height) + "  guides " + rnd(gd.getBoundingClientRect().height) +
