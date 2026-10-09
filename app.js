@@ -779,7 +779,10 @@
     if (reset) {
       e.preventDefault();
       e.stopPropagation();
-      delete state.overrides[reset.dataset.reset];
+      const i = reset.dataset.reset;
+      /* стрелка сбрасывает все правки бирки: и текст, и свою иконку */
+      delete state.overrides[i];
+      delete state.icon.byTag[i];
       render();
       return;
     }
