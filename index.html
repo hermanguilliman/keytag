@@ -239,14 +239,14 @@
     <div class="topbar-actions">
       <span class="ver" aria-hidden="true">v1.2.4</span>
 
-      <button type="button" class="tbtn" id="hubBtn" title="Все проекты Guilliman's Lab">
+      <button type="button" class="tbtn" id="hubBtn" data-i18n-title="hubTitle" title="Все проекты Guilliman's Lab">
         <svg class="ico-16" viewBox="0 0 24 24" aria-hidden="true">
           <rect x="3.5" y="3.5" width="7" height="7" rx="1" />
           <rect x="13.5" y="3.5" width="7" height="7" rx="1" />
           <rect x="13.5" y="13.5" width="7" height="7" rx="1" />
           <rect x="3.5" y="13.5" width="7" height="7" rx="1" />
         </svg>
-        <span>Проекты</span>
+        <span data-i18n="hubShort">Проекты</span>
       </button>
 
       <button type="button" class="tbtn" id="themeBtn" data-i18n-title="themeLabel">
@@ -419,6 +419,17 @@
               <input class="input" type="number" id="f-my" data-bind="paper.marginY" min="0" max="100" step="1">
               <span class="unit" data-i18n="mm">мм</span>
             </div>
+          </div>
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <label for="f-cols" data-i18n="cols">Столбцов</label>
+            <input class="input" type="number" id="f-cols" data-bind="grid.cols" min="1" max="40" step="1">
+          </div>
+          <div class="field">
+            <label for="f-rows" data-i18n="rows">Рядов</label>
+            <input class="input" type="number" id="f-rows" data-bind="grid.rows" min="1" max="80" step="1">
           </div>
         </div>
 
@@ -609,7 +620,8 @@
         <p class="hint option-line" data-i18n="printHint">Печать: в диалоге выберите масштаб 100% и «без полей», либо
           «Сохранить как PDF».</p>
 
-        <button type="button" class="btn btn-block btn-ghost" id="resetOverrides" data-i18n="resetOverrides">Сбросить
+        <button type="button" class="btn btn-block btn-ghost" id="resetOverrides"
+          data-i18n="resetTextOverrides">Сбросить
           правки текста</button>
 
         <div class="field field-gap">
