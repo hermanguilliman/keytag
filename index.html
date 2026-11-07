@@ -337,6 +337,18 @@
           </div>
         </div>
 
+        <div class="field">
+          <div class="label-row"><label for="f-iedge" data-i18n="iconEdge">Отступ от края (слева/справа)</label></div>
+          <div class="slider-row">
+            <input type="range" id="f-iedge-range" data-bind="icon.edge" min="0" max="20" step="0.5"
+              aria-label="icon edge offset">
+            <div class="with-unit with-unit-sm">
+              <input class="input" type="number" id="f-iedge" data-bind="icon.edge" min="0" max="40" step="0.5">
+              <span class="unit" data-i18n="mm">мм</span>
+            </div>
+          </div>
+        </div>
+
         <div class="icon-scope" id="iconScope">
           <span class="icon-scope-text" id="iconScopeText" data-i18n="iconScopeAll">Иконка для всех бирок</span>
           <span class="icon-scope-actions" id="iconScopeActions">

@@ -512,11 +512,6 @@ textarea {
     overscroll-behavior: contain;
     scrollbar-width: thin;
     scrollbar-color: var(--line) transparent;
-    /* contain:paint изолирует скролл-область панели:
-     её многосекционный контент (тысячи px) иначе пробрасывается в
-     корневой скролл документа, и Chrome «долистывает» окно вниз —
-     интерфейс уезжал вверх, внизу был пустой кусок. Теперь корневой
-     scrollHeight == высоте окна, скроллить окно некуда в принципе. */
     contain: paint;
 }
 .panel::-webkit-scrollbar {
@@ -1130,8 +1125,6 @@ select.input option {
     overflow: hidden;
     position: relative;
 }
-/* зона печати и направляющие отрисованы оверлеем #guides (см. .guides ниже) —
-   внутри масштабируемого слоя ничего служебного не живёт */
 
 .sheet-caption {
     margin-top: 16px;
@@ -1206,6 +1199,12 @@ select.input option {
     display: block;
     color: inherit;
 }
+.tag-content[data-icon-pos="left"] .tag-ico {
+    margin-left: calc(var(--ie, 3.5mm) - 1.4mm);
+}
+.tag-content[data-icon-pos="right"] .tag-ico {
+    margin-right: calc(var(--ie, 3.5mm) - 1.4mm);
+}
 .tag-ico svg {
     width: 100%;
     height: 100%;
@@ -1252,9 +1251,7 @@ select.input option {
     background: var(--accent-soft);
 }
 
-/* направляющие (только экран): оверлей над листом, НЕ внутри
-   масштабируемого слоя; только плейн-дивы с рамкой 1px — самый
-   надёжный примитив рендера при любом зуме браузера */
+/* направляющие (только экран) */
 .guides {
     position: absolute;
     inset: 0;
@@ -1296,8 +1293,7 @@ select.input option {
     outline-offset: 0.4mm;
 }
 
-/* маркер индивидуальной иконки (только экран): левый верхний угол,
-   текстовая правка — левый нижний */
+/* маркер индивидуальной иконки (только экран) */
 .tag.has-icon-override::after {
     content: "";
     position: absolute;
@@ -1477,7 +1473,6 @@ select.input option {
 
 /* ============ АДАПТИВ ============ */
 
-/* Сенсорные экраны: увеличиваем цели нажатия (Fitts) */
 @media (pointer: coarse) {
     .btn {
         height: 44px;
@@ -1596,7 +1591,6 @@ select.input option {
     }
 }
 
-/* Уважение к настройке «уменьшить анимацию» */
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

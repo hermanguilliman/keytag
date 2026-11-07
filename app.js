@@ -64,6 +64,7 @@
             pos: "above",
             size: 7,
             gap: 1.5,
+            edge: 3.5,
             byTag: {},
         },
         number: { start: 1, pad: 2 },
@@ -345,11 +346,7 @@
         return '"' + name + '", ' + generic;
     }
 
-    /* ---------- иконки: общая + индивидуальные по биркам ----------
-     state.icon.byTag[String(i)] = { key, custom } — переопределение для
-     бирки i. custom != null → своя загруженная картинка;
-     key === "none" && !custom → на бирке нет иконки;
-     иначе — встроенная по ключу. entry без значения = пустое (общая). */
+    /* ---------- иконки: общая + индивидуальные по биркам ---------- */
 
     function hasIconOverride(i) {
         return Object.prototype.hasOwnProperty.call(
@@ -366,7 +363,6 @@
         return { key: state.icon.key, custom: state.icon.custom, global: true };
     }
 
-    /* иконка «как сейчас рисуется» для бирки i (с учётом выбранной бирки) */
     function displayIcon(i) {
         if (i != null && i < countTags() && hasIconOverride(i))
             return iconOverride(i);
@@ -403,8 +399,6 @@
         return el;
     }
 
-    /* Применить встроенную иконку: к выбранной бирке или ко всем сразу.
-     Если индивидуальная настройка совпадает с общей — убираем её. */
     function applyIcon(key) {
         if (selectedTag != null && selectedTag < countTags()) {
             const i = String(selectedTag);
@@ -414,7 +408,6 @@
         } else {
             state.icon.key = key;
             state.icon.custom = null;
-            /* чистим индивидуальные, ставшие равными общей */
             Object.keys(state.icon.byTag).forEach((k) => {
                 const o = state.icon.byTag[k];
                 if (o && !o.custom && (o.key === key || o.key === "none"))
@@ -478,6 +471,7 @@
             tag.style.setProperty("--lh", String(state.text.lineHeight));
             tag.style.setProperty("--is", state.icon.size + "mm");
             tag.style.setProperty("--ig", state.icon.gap + "mm");
+            tag.style.setProperty("--ie", state.icon.edge + "mm");
 
             const content = document.createElement("div");
             content.className = "tag-content";
@@ -734,7 +728,6 @@
         if (next === undefined) return;
         setPath(el.dataset.bind, next);
         if (el.dataset.bind === "tag.guides") {
-            /* направляющие — меняется только оверлей; сетку бирок не перестраиваем */
             renderGuides();
             syncControls();
             save();
@@ -756,7 +749,6 @@
     });
 
     panel.addEventListener("click", (e) => {
-        /* сегментированные переключатели */
         const segBtn = e.target.closest("[data-seg] button");
         if (segBtn) {
             const seg = segBtn.closest("[data-seg]");
@@ -770,7 +762,6 @@
             return;
         }
 
-        /* образцы цвета */
         const swatch = e.target.closest(".swatch");
         if (swatch && swatch.closest("[data-color]")) {
             setPath(
@@ -781,7 +772,6 @@
             return;
         }
 
-        /* выбор иконки: общая или для выбранной бирки */
         const iconBtn = e.target.closest("[data-icon]");
         if (iconBtn) {
             applyIcon(iconBtn.dataset.icon);
@@ -789,7 +779,6 @@
             return;
         }
 
-        /* готовые размеры */
         const preset = e.target.closest("[data-preset]");
         if (preset) {
             const parts = preset.dataset.preset.split(",");
@@ -813,7 +802,6 @@
 
     iconRemove.addEventListener("click", () => {
         if (selectedTag != null) {
-            /* убрать свою иконку у выбранной бирки */
             const i = String(selectedTag);
             const o = state.icon.byTag[i];
             if (o && o.custom) {
@@ -826,26 +814,23 @@
         }
     });
 
-    /* «Без иконки» — для выбранной бирки */
     iconScopeNone.addEventListener("click", () => {
         if (selectedTag == null) return;
         const i = String(selectedTag);
         if (iconDisabled(selectedTag)) {
-            delete state.icon.byTag[i]; // повторный клик — вернуть иконку
+            delete state.icon.byTag[i];
         } else {
             state.icon.byTag[i] = { key: "none", custom: null };
         }
         render();
     });
 
-    /* «Общая» — убрать индивидуальную иконку выбранной бирки */
     iconScopeReset.addEventListener("click", () => {
         if (selectedTag == null) return;
         delete state.icon.byTag[String(selectedTag)];
         render();
     });
 
-    /* Сбросить все индивидуальные иконки */
     $("#resetIconOverrides").addEventListener("click", () => {
         state.icon.byTag = {};
         selectedTag = null;
@@ -859,7 +844,6 @@
         reader.onload = () => {
             const data = String(reader.result);
             if (selectedTag != null && selectedTag < countTags()) {
-                /* своя иконка — только для выбранной бирки */
                 state.icon.byTag[String(selectedTag)] = {
                     key: null,
                     custom: data,
@@ -883,8 +867,6 @@
         return el.innerText.replace(/\u00A0/g, " ").replace(/\n+$/g, "");
     }
 
-    /* Сохраняем правку сразу при вводе: фокус может уйти любым способом,
-     а состояние должно обновиться в любом случае. */
     function commitOverride(i, el) {
         const value = normalizeEditable(el);
         const key = String(i);
@@ -907,8 +889,6 @@
         commitOverride(Number(el.dataset.index), el);
     });
 
-    /* Запоминаем, был ли фокус уже внутри текста бирки до клика мышью,
-     чтобы перемещение текстового курсора не сбрасывало выделение бирки. */
     let activeTextBeforeMouseDown = null;
     grid.addEventListener("mousedown", (e) => {
         if (e.target.closest && e.target.closest(".tag-reset")) {
@@ -940,7 +920,6 @@
             e.preventDefault();
             e.stopPropagation();
             const i = reset.dataset.reset;
-            /* стрелка сбрасывает все правки бирки: и текст, и свою иконку */
             delete state.overrides[i];
             delete state.icon.byTag[i];
             render();
@@ -956,9 +935,6 @@
         );
         const txt = $(".tag-text", tag);
 
-        /* Если пользователь уже редактировал текст этой бирки и кликнул внутри
-       него для перемещения каретки — оставляем бирку выбранной. Иначе
-       повторный клик по бирке снимает выделение. */
         if (
             isTextClick &&
             activeTextBeforeMouseDown === txt &&
@@ -1059,12 +1035,6 @@
         toastTimer = setTimeout(() => el.classList.remove("show"), 2200);
     }
 
-    /* Направляющие: отрисовываются оверлеем НАД листом, вне
-     масштабируемого слоя (.sheet-scaler), чтобы пунктир не
-     растеризовывался при scale() на GPU. Оверлей вне масштабируемого
-     слоя, только плейн-дивы с рамкой 1px — самые тривиальные примитивы
-     рендера, одинаково выглядят при любом зуме браузера.
-     Координаты — в пикселях предпросмотра (мм × zoom × MM_PX). */
     function renderGuides() {
         guidesEl.innerHTML = "";
         const s = sheetSize();
@@ -1080,7 +1050,6 @@
             d.style.borderRadius = Math.max(0, r1(rx)) + "px";
             guidesEl.appendChild(d);
         };
-        /* зона печати: рамка внутри полей (видна всегда) */
         add(
             state.paper.marginX * u,
             state.paper.marginY * u,
@@ -1090,7 +1059,6 @@
             "print-zone",
         );
         if (state.tag.guides) {
-            /* сетка центрируется в листе: повторяем расчёт CSS (.sheet flex + поля) */
             const gridW =
                 state.grid.cols * state.tag.w +
                 (state.grid.cols - 1) * state.tag.gapX;
@@ -1120,9 +1088,6 @@
         diagPanel();
     }
 
-    /* ---------- диагностика ----------
-     При ?diag в URL (или window.__KEYTAG_DIAG === true) показывает
-     компактную панель метрик на странице и пишет её в консоль. */
     function diagPanel() {
         const showDiag = location.search.includes("diag");
         if (!showDiag && window.__KEYTAG_DIAG !== true) return;
@@ -1208,7 +1173,7 @@
             el.matches('input[type="number"]') &&
             el === document.activeElement
         ) {
-            e.preventDefault(); // клик не снимает выделение «выбрать всё»
+            e.preventDefault();
         }
     });
 
@@ -1343,8 +1308,8 @@
         const lsPx = state.text.letterSpacing * fontSize;
         const iconSize = state.icon.size * px;
         const iconGap = state.icon.gap * px;
+        const iconEdge = state.icon.edge * px;
 
-        /* иконка + текст: общая + индивидуальные по биркам */
         const iconSrcs = [];
         for (let i = 0; i < count; i++) iconSrcs[i] = iconSrcFor(i);
         const imgBox = new Map();
@@ -1431,14 +1396,17 @@
                         );
                     });
                 } else {
-                    const textW = Math.max(0, innerW - iconSize - iconGap);
                     const isRight = state.icon.pos === "right";
                     const iconX = isRight
-                        ? innerLeft + innerW - iconSize
-                        : innerLeft;
+                        ? x + tw - iconEdge - iconSize
+                        : x + iconEdge;
                     const textLeft = isRight
                         ? innerLeft
-                        : innerLeft + iconSize + iconGap;
+                        : x + iconEdge + iconSize + iconGap;
+                    const textW = Math.max(
+                        0,
+                        tw - pad - iconEdge - iconSize - iconGap,
+                    );
                     const textTopY = y + (th - totalH) / 2;
                     ctx.drawImage(
                         img,
@@ -1534,8 +1502,6 @@
             }
             render();
         } catch (err) {
-            /* Самовосстановление: если сохранённое состояние ломает рендер,
-         сбрасываем его к заводскому, чтобы интерфейс всегда оживал. */
             console.error("KEYTAG: ошибка рендера, сброс состояния:", err);
             try {
                 localStorage.removeItem(STORE_KEY);
